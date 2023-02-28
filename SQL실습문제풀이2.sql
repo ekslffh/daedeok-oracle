@@ -334,6 +334,7 @@ SELECT MEM_NAME 회원이름, MEM_MILEAGE 마일리지, WIDTH_BUCKET(MEM_MILEAGE,500,300
 SELECT ROUND(345.123 - 0.05, 1) RESULT1,
        ROUND(345.123 - 0.5, 0) RESULT2,
        ROUND(345.123 - 5, -1) RESULT3 FROM DUAL;
+
 -- 100 / 9 결과값을 십의 자리까지 나타내고 일의 자리는 버리시오
 SELECT ROUND((100 / 9) - 5, -1) RESULT FROM DUAL;
 -- FLOOR함수 활용
@@ -362,6 +363,7 @@ SELECT NEXT_DAY(SYSDATE,'월요일'), LAST_DAY(SYSDATE) FROM DUAL;
 SELECT LAST_DAY(SYSDATE) - SYSDATE AS "이번달 남은 날" FROM DUAL;
 
 SELECT ROUND(SYSDATE,'MM'), TRUNC(SYSDATE,'MM') FROM DUAL;
+
 -- MONTHS_BETWEEN(date1,date2): 두 날짜 사이의 달수를 숫자로 리턴
 SELECT MONTHS_BETWEEN(SYSDATE,'2000-01-01') FROM DUAL; 
 
@@ -377,6 +379,7 @@ SELECT '[' || CAST('Hello' AS CHAR(10)) || ']' AS "형변환" FROM DUAL;
 SELECT CAST('1997/12/25' AS DATE) FROM DUAL;
 
 SELECT TO_CHAR(SYSDATE,'ADYYYY,CC"세기"') FROM DUAL;
+-- TO_CHAR를 통해서 현재 날짜를 문자열로 나타내면서 형식을 원하는대로 변경가능
 SELECT TO_CHAR(CAST('2008-12-25' AS DATE), 'YYYY.MM.DD HH24:MI') FROM DUAL;
 
 -- 상품테이블에서 상품입고일을 '2008-09-28' 형식으로 나오게 검색하시오. (Alias 상품명,상품판매가,입고일)
@@ -385,7 +388,15 @@ SELECT PROD_NAME AS "상품명", PROD_SALE AS "상품판매가", TO_CHAR(PROD_INSDATE,'Y
 -- 김은대님은 1976년 1월 출생이고 태어난 요일은 목요일
 SELECT MEM_NAME AS "회원이름", MEM_BIR AS "회원생일", MEM_NAME || '님은 ' || TO_CHAR(MEM_BIR, 'YYYY"년" MM"월 출생이고 태어난 요일은" DAY') FROM MEMBER;
 
+-- 숫자 FORMAT
+SELECT TO_CHAR(1234.6,'99,999.00') FROM DUAL;
+SELECT TO_CHAR(-1234.6,'L9999.00PR') FROM DUAL;
+SELECT TO_CHAR(255,'XXX') FROM DUAL;
 
+SELECT TO_CHAR(15, 'XXX'),
+       TO_CHAR(16, 'XXX'),
+       TO_CHAR(17, 'XXX')
+       FROM DUAL;
 
 SELECT MEM_NAME 회원이름, MEM_MILEAGE 마일리지,
 CASE 
@@ -397,6 +408,211 @@ CASE
   END AS 등급
 FROM MEMBER ;
 
+SELECT PROD_ID AS "상품코드",
+       PROD_NAME AS "상품명",
+       TO_CHAR(PROD_COST,'L99,999,999') AS "매입가격",
+       TO_CHAR(PROD_PRICE,'L99,999,999') AS "소비자가격",
+       TO_CHAR(PROD_SALE,'L99,999,999') AS "판매가격"
+       FROM PROD;
+
+-- TO_NUMBER
+SELECT TO_NUMBER('3.1415') FROM DUAL;
+SELECT TO_NUMBER('￦1,200','L999,999') FROM DUAL;
+
+-- 회원테이블에서 이쁜이회원의 회원ID2~4 문자열을 숫자형으로 치환한 후 10을 더하여 새로운 회원ID로 조합하시오.
+-- (Alias는 회원ID, 조합회원ID)
+SELECT MEM_ID 회원ID, TO_NUMBER(SUBSTR(MEM_ID,2,3)) + 10 "조합회원ID" FROM MEMBER WHERE MEM_NAME='이쁜이';
+SELECT MEM_ID 회원ID, 
+       SUBSTR(MEM_ID,1,1) 조합회원ID,
+       SUBSTR(MEM_ID,2),
+       TO_CHAR(SUBSTR(MEM_ID,2) + 10, '000'),
+       LPAD(SUBSTR(MEM_ID,2) + 10,3,'0'),
+       SUBSTR((1000 + TO_NUMBER(SUBSTR(MEM_ID,2))+10),2),
+       REPLACE(SUBSTR(MEM_ID,2)+10,'11','011')
+       FROM MEMBER
+       WHERE MEM_NAME='이쁜이';
+
+SELECT TO_DATE('2009-03-05') + 3 FROM DUAL;
+SELECT TO_DATE('200803101234','YYYYMMDDHH24MI') FROM DUAL;
+
+-- 230228
+-- 회원테이블에서 주민등록번호1을 날짜로 치환한 후 검색하시오 (Alias는 회원명, 주민등록번호1, 치환날짜)
+SELECT MEM_NAME 회원명, 
+       MEM_REGNO1 주민등록번호1,
+       '19'||TO_DATE(MEM_REGNO1,'YYMMDD') 치환날짜2,
+       TO_CHAR(TO_DATE(MEM_REGNO1,'YYMMDD'),'"19"YY-MM-DD') 치환날짜3
+       FROM MEMBER;
+
+-- AVG(column): 조회 범위 내 해당 컬럼들의 평균값
+-- All이 기본값이고 DISTINCT 설정시 중복값 제거
+SELECT ROUND(AVG(DISTINCT PROD_COST),1) AS "중복된 값은 제외",
+       AVG(ALL PROD_COST) AS "DEFAULT,모든값을포함",
+       AVG(PROD_COST) AS "매입가 평균"
+       FROM PROD;
+
+-- 상품테이블의 총 판매가격 평균 값을 구하시오? 
+SELECT AVG(PROD_SALE) AS "총 판매가격평균" FROM PROD;
+SELECT AVG(ALL PROD_SALE) AS "총 판매가격평균" FROM PROD;
+
+-- 상품테이블의 상품분류별 판매가격 평균값을 구하시오?
+SELECT PROD_LGU AS 상품분류,
+       AVG(ALL PROD_SALE) AS "상품분류판매가격평균"
+       FROM PROD
+       GROUP BY PROD_LGU;
+
+-- COUNT(col), COUNT(*): 조회 범위 내 해당 컬럼들의 자료 수, 선택된 자료의 수
+SELECT COUNT(DISTINCT PROD_COST),
+       COUNT(ALL PROD_COST),
+       COUNT(*)
+       FROM PROD;
+
+-- 거래처 테이블의 담당자(BUYER_CHARGER)를 컬럼으로 하여 COUNT집계하시오?
+SELECT COUNT(BUYER_CHARGER), COUNT(DISTINCT BUYER_CHARGER), COUNT(*) FROM BUYER;
+-- COUNT할 때 NULL값은 제외하고 카운트
+SELECT COUNT(COMM) FROM EMP;
+
+-- 회원테이블의 취미종류수를 COUNT집계하시오
+SELECT COUNT(DISTINCT MEM_LIKE) AS "취미종류수" FROM MEMBER;
+-- 회원테이블의 취미별 COUNT집계하시오? (Alias는 취미, 자료수, 자료수(*))
+-- COUNT(*)는 전체 자료수 (ROW 집계), COUNT(속성)은 속성 자료개수(NULL이면 집계안함)
+SELECT MEM_LIKE 취미, COUNT(MEM_LIKE) 자료수, COUNT(*) "자료수(*)" FROM MEMBER GROUP BY MEM_LIKE;
+-- 회원테이블의 직업종료수를 COUNT집계하시오
+SELECT COUNT(DISTINCT MEM_JOB) AS "직업종류수" FROM MEMBER;
+-- 회원테이블의 직업별 COUNT집계 하시오 (Alias는 직업, 자료수, 자료수(*))
+SELECT MEM_JOB AS "직업", COUNT(MEM_JOB) AS "자료수", COUNT(*) AS "자료수(*)" FROM MEMBER GROUP BY MEM_JOB;
+-- 장바구니테이블의 회원(CART_MEMBER)별 COUNT집계하시오? (Alias는 회원ID, 구매수(DISTINCT), 구매수, 구매수(*))
+SELECT CART_MEMBER FROM CART;
+SELECT CART_MEMBER 회원ID, COUNT(DISTINCT CART_MEMBER) AS "구매수(DISTINCT)", COUNT(*) AS "구매수(*)" FROM CART GROUP BY CART_MEMBER;
+
+-- MAX(col), MIN(col): 조회 범위 내 해당 컬럼들 중 최대값과 최소값
+-- 상품 중 거래처별 최고매입가격과 최저매입가격
+SELECT PROD_BUYER AS "거래처",
+       MAX(PROD_COST) AS "최고매입가",
+       MIN(PROD_COST) AS "최저매입가"
+       FROM PROD
+       GROUP BY PROD_BUYER;
+-- 장바구니 테이블의 회원별 최대구매수량을 검색하시오 (Alias는 회원ID, 최대수량, 최소수량)
+SELECT CART_MEMBER AS "회원ID", MAX(CART_QTY) AS "최대수량", MIN(CART_QTY) AS "최소수량" FROM CART GROUP BY CART_MEMBER;
+-- 오늘이 2020년도7월11일이라 가정하고 장바구니 테이블에 발생될 추가주문번호를 검색하시오?(Alias는 최고치주문번호, 추가주문번호)
+SELECT * FROM CART;
+-- 오늘이 2020년도7월11일이라 가정하고 장바구니 테이블에 발생될 추가주문번호를 검색하시오
+SELECT MAX(CART_NO) AS "최고치주문번호", MAX(CART_NO) + 1 AS "추가주문번호" FROM CART WHERE SUBSTR(CART_NO,1,8)='20200711';
+
+-- SUM(column): 조회 범위 내 해당 컬럼들의 합계
+-- 상품입고테이블의 상품별 입고수량의 합계 값
+SELECT BUY_PROD AS "상품", SUM(BUY_QTY) AS "입고수량합계" FROM BUYPROD GROUP BY BUY_PROD;
+-- 회원테이블의 회원전체의 마일리지 평균, 마일리지 합계, 최고 마일리지, 최소 마일리지 인원수를 검색하시오?
+-- (Alias는 마일리지 평균, 마일리지 합계, 최고마일리지, 최소마일리지, 인원수)
+SELECT ROUND(AVG(MEM_MILEAGE),2) AS "마일리지 평균",
+       SUM(MEM_MILEAGE) AS "마일리지 합계",
+       MAX(MEM_MILEAGE) AS "최고 마일리지",
+       MIN(MEM_MILEAGE) AS "최소 마일리지",
+       COUNT(DISTINCT MEM_ID) AS "인원수"
+       FROM MEMBER;
+       
+-- 상품테이블에서 거래처, 상품분류별로 최고판매가, 최소판매가, 자료수를 검색하시오
+SELECT * FROM PROD;
+SELECT PROD_BUYER AS "거래처", PROD_LGU AS "상품분류", MAX(PROD_SALE) AS "최고판매가", MIN(PROD_SALE) AS "최소판매가", COUNT(PROD_SALE) FROM PROD GROUP BY PROD_BUYER, PROD_LGU;
+-- 장바구니 테이블에서 회원, 상품분류별로 구매수량평균, 구매수량합계, 자료수를 검색하시오 (Alias는 회원ID, 상품분류, 구매수량 평균, 구매수량합계, 자료수)
+-- 회원ID, 상품분류 순으로 SORT하시오
+SELECT * FROM CART;
+SELECT CART_MEMBER AS "회원ID", SUBSTR(CART_PROD,1,4) AS "상품분류", ROUND(AVG(CART_QTY),2) AS "구매수량평균", SUM(CART_QTY) AS "구매수량합계", COUNT(CART_QTY) AS "자료수" FROM CART GROUP BY CART_MEMBER, CART_PROD ORDER BY CART_MEMBER, CART_PROD;
+-- 회원테이블에서 지역(주소1의2자리),생일년도별로 마일리지평균, 마일리지 합계, 최고마일리지, 최소마일리지, 자료수를 검색하시오
+-- (Alias는 지역,생일연도,마일리지평균,마일리지합계,최고마일리지,최소마일리지,자료수)
+SELECT * FROM MEMBER;
+SELECT SUBSTR(MEM_ADD1,1,2) AS "지역", AVG(MEM_MILEAGE) AS "마일리지평균", SUM(MEM_MILEAGE) AS "마일리지합계", MAX(MEM_MILEAGE) AS "최고마일리지", MIN(MEM_MILEAGE) AS "최소마일리지", COUNT(MEM_MILEAGE) AS "자료수" FROM MEMBER GROUP BY SUBSTR(MEM_BIR,1,2), SUBSTR(MEM_ADD1,1,2) ORDER BY SUBSTR(MEM_ADD1,1,2);
+
+-- ROLLUP
+SELECT PROD_LGU,
+       PROD_BUYER,
+       COUNT(*),
+       SUM(PROD_COST)
+       FROM PROD
+       GROUP BY PROD_LGU, ROLLUP(PROD_BUYER);
+
+-- CUBE: ROLLUP함수와 같이 각 소계도 출력하고 전체 총계까지 출력
+SELECT PROD_LGU,
+       PROD_BUYER,
+       COUNT(*),
+       SUM(PROD_COST)
+       FROM PROD
+       GROUP BY CUBE(PROD_LGU, PROD_BUYER);
+
+-- NULL
+SELECT BUYER_NAME as "거래처",
+       BUYER_CHARGER AS "담당자"
+       FROM BUYER
+       WHERE BUYER_CHARGER=NULL;
+-- 회원 마일리지에 100을 더한 수치를 검색하시오 (NVL 사용, Alias는 성명,마일리지,변경마일리지)
+SELECT MEM_NAME AS "성명", NVL(MEM_MILEAGE,0) AS "마일리지", NVL(MEM_MILEAGE,0)+100 AS "변경마일리지" FROM MEMBER;
+-- 회원 마일리지가 있으면 "정상회원", Null이면 '비정상회원'으로 검색하시오?
+UPDATE MEMBER SET MEM_MILEAGE=NULL WHERE MEM_NAME='정은실';
+SELECT MEM_NAME AS "성명", MEM_MILEAGE AS "마일리지", NVL2(MEM_MILEAGE,'정상 회원', '비정상 회원') AS 회원상태 FROM MEMBER;
+
+-- NULLIF(A,B): A,B를 비교해서 같으면 NULL 반환, 다르면 A반환
+SELECT NULLIF(123,123) RESULT1,
+       NULLIF(123,1234) RESULT2,
+       NULLIF('A','B') RESULT4
+       FROM DUAL;
+-- 순서대로 조회해서 가장 먼저 NULL이 아닌값을 출력한다.
+SELECT COALESCE(NULL,NULL,'Hello',Null,'World') FROM DUAL;
+
+-- DECODE: IF문과 같은 기능을 함
+SELECT DECODE(9,10,'A',9,'B',8,'C','D') FROM DUAL;
+SELECT DECODE(SUBSTR(PROD_LGU,1,2),
+       'P1', '컴퓨터/전자제품',
+       'P2', '의류',
+       'P3', '잡화', '기타')
+       FROM PROD;
+
+-- 상품 분류 중 앞의 글자가 'P1'이면 판매가를 10%인상하고 'P2'이면 판매가를 15%인상하고, 나머지는 동일 판매가로 검색하시오
+-- (DECODE 함수 사용, Alias는 상품명,판매가,변경판매가)
+SELECT PROD_NAME AS "상품명", PROD_SALE AS "판매가", DECODE(SUBSTR(PROD_LGU,1,2),'P1',PROD_SALE + (PROD_SALE * 0.1),'P2',PROD_SALE + (PROD_SALE * 0.15), PROD_SALE) AS "변경판매가" FROM PROD;
+-- CASE WHEN TEHN ELSE
+SELECT CASE WHEN '나'='나' THEN '맞다' ELSE '아니다' END AS RESULT1 FROM DUAL;
+SELECT CASE '나' WHEN '철호' THEN '아니다' WHEN '너' THEN '아니다' WHEN '나' THEN '맞다' ELSE '모르겠다' END RESULT FROM DUAL;
+
+SELECT PROD_NAME 상품, PROD_LGU 분류,
+    CASE PROD_LGU 
+    WHEN 'P101' THEN '컴퓨터제품'                    
+    WHEN 'P102' THEN '전자제품'
+    WHEN 'P201' THEN '여성캐쥬얼'
+    WHEN 'P202' THEN '남성캐쥬얼'
+    WHEN 'P301' THEN '피혁잡화'
+    WHEN 'P302' THEN '화장품'
+    WHEN 'P401' THEN '음반/CD'
+    WHEN 'P402' THEN '도서'
+    WHEN 'P403' THEN '문구류'
+    ELSE '미등록분류'
+    END "상품 분류"
+    FROM PROD;
+
+-- 회원정보테이블의 주민등록 뒷자리(7자리중 첫째자리)에서 성별구분을 검색하시오?
+-- CASE 구문 사용, Alias는 회원명,주민등록번호(주민1-주민2), 성별)
+SELECT MEM_NAME AS "회원명", MEM_REGNO1 || '-' || MEM_REGNO2 AS "주민번호(주민1-주민2)", 
+    CASE SUBSTR(MEM_REGNO2,1,1) 
+    WHEN '1' THEN '남' 
+    WHEN '3' THEN '남' 
+    WHEN '2' THEN '여' 
+    WHEN '4' THEN '여' 
+    END "성별" 
+    FROM MEMBER;
+    
+SELECT MEM_NAME AS "회원명", MEM_REGNO1 || '-' || MEM_REGNO2 AS "주민번호(주민1-주민2)", 
+    CASE SUBSTR(MEM_REGNO2,1,1) 
+    WHEN '1' THEN '남' 
+    WHEN '3' THEN '남' 
+    ELSE '여'
+    END "성별" 
+    FROM MEMBER;
+
+SELECT MEM_NAME AS "회원명", MEM_REGNO1 || '-' || MEM_REGNO2 AS "주민번호(주민1-주민2)", 
+    CASE 
+    WHEN SUBSTR(MEM_REGNO2,1,1)='1' OR SUBSTR(MEM_REGNO2,1,1)='3' THEN '남' 
+    WHEN SUBSTR(MEM_REGNO2,1,1)='2' OR SUBSTR(MEM_REGNO2,1,1)='4' THEN '여' 
+    END "성별" 
+    FROM MEMBER;
+    
 -- 테스트 
 SELECT COUNT(*) FROM EMP;
 SELECT * FROM EMP;
