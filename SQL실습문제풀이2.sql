@@ -613,6 +613,159 @@ SELECT MEM_NAME AS "회원명", MEM_REGNO1 || '-' || MEM_REGNO2 AS "주민번호(주민1-
     END "성별" 
     FROM MEMBER;
     
+-- 230302
+-- REGEXP_LIKE
+SELECT MEM_ID AS "회원ID",
+       MEM_NAME AS "회원명"
+       FROM MEMBER
+       WHERE REGEXP_LIKE(MEM_NAME, '^김(성|형)');
+SELECT PROD_ID AS "상품ID",
+       PROD_NAME AS "상품명"
+       FROM PROD
+       WHERE REGEXP_LIKE(PROD_NAME, '^삼성.*\d\d');
+-- REGEXP_SUBSTR
+SELECT REGEXP_SUBSTR('JavaFlexOracle','[^ ]+') FROM DUAL;
+SELECT REGEXP_SUBSTR('JavaFlexOracle','[^ ]+',1,3) FROM DUAL;
+-- 회원테이블에서 이메일주소를 근거로 이메일아이디, 이메일서버로 구분하여 검색하시오?
+-- Alias는 회원이름, 이메일, 이메일아이디, 이메일서버
+SELECT MEM_NAME AS "회원이름",
+       MEM_MAIL AS "이메일",
+       REGEXP_SUBSTR(MEM_MAIL,'[^@]+') AS "이메일아이디",
+       REGEXP_SUBSTR(MEM_MAIL,'[^@]+',1,2) AS "이메일서버"
+       FROM MEMBER;
+-- REGEXP_REPLACE
+SELECT REGEXP_REPLACE('JavaFlexOracle','[^ ]+','C++') FROM DUAL;
+SELECT REGEXP_REPLACE('JavaFlexOracle','[^ ]+','C++',1,2) FROM DUAL;
+-- REGEXP_INSTR
+SELECT REGEXP_INSTR('JAVAFlexOracle','[ae]',1,1,0,'i') RESULT FROM DUAL;
+--TABLE JOIN
+SELECT * FROM LPROD,PROD;
+SELECT COUNT(*) FROM LPROD,PROD,BUYER;
+SELECT * FROM LPROD CROSS JOIN PROD;
+SELECT COUNT(*) FROM LPROD CROSS JOIN PROD CROSS JOIN BUYER;
+-- EQUI JOIN
+-- 상품테이블에서 상품코드,상품명,분류명을 조회
+-- 상품테이블: PROD, 분류테이블: LPROD
+SELECT PROD.PROD_ID AS "상품코드",
+       PROD.PROD_NAME AS "상품명",
+       LPROD.LPROD_NM AS "분류명"
+       FROM PROD, LPROD
+       WHERE PROD.PROD_LGU=LPROD.LPROD_GU;
+SELECT PROD.PROD_ID AS "상품코드",
+       PROD.PROD_NAME AS "상품명",
+       LPROD.LPROD_NM AS "분류명"
+       FROM PROD INNER JOIN LPROD
+       ON (PROD.PROD_LGU=LPROD.LPROD_GU);
+-- 상품테이블에서 거래처가 '삼성전자'인 자료의 상품코드,상품명,거래처 명을 조회
+SELECT PROD_ID AS "상품코드",
+       PROD_NAME AS "상품명",
+       BUYER_NAME AS "거래처명"
+       FROM PROD, BUYER
+       WHERE PROD_BUYER=BUYER_ID
+       AND BUYER_NAME LIKE '삼성전자%';
+-- 상품테이블에서 상품코드,상품명,분류명,거래처명,거래처주소를 조회
+-- 1)판매가격이10만원이하이고 2)거래처주소가 부산인 경우만 조회
+SELECT A.PROD_ID AS "상품코드",
+       A.PROD_NAME AS "상품명",
+       B.LPROD_NM AS "분류명",
+       C.BUYER_NAME AS "거래처명",
+       C.BUYER_ADD1 AS "주소"
+       FROM PROD A, LPROD B, BUYER C
+       WHERE A.PROD_SALE <= 100000
+       AND   A.PROD_LGU = B.LPROD_GU
+       AND   A.PROD_BUYER = C.BUYER_ID
+       AND   C.BUYER_ADD1 LIKE '%부산%';
+-- 장바구니테이블의 2020년도 5월의 회원별 구매금액을 검색하시오?
+-- 구매금액 = 구매수량 * 판매가
+-- Alias는 회원ID,회원명,구매금액
+SELECT * FROM CART;
+SELECT * FROM PROD;
+SELECT C.CART_MEMBER AS "회원ID", (C.CART_QTY * P.PROD_SALE) AS "구매금액"  FROM CART C INNER JOIN PROD P ON C.CART_PROD=P.PROD_ID;
+SELECT 회원ID, SUM(구매금액) AS "구매금액" FROM (SELECT C.CART_MEMBER AS "회원ID", (C.CART_QTY * P.PROD_SALE) AS "구매금액"  FROM CART C INNER JOIN PROD P ON C.CART_PROD=P.PROD_ID) GROUP BY 회원ID;
+
+SELECT MEMBER.MEM_ID AS "회원id",
+       MEMBER.MEM_NAME AS "회원NAME",
+       SUM(PROD.PROD_SALE*CART.CART_QTY) AS "구매금액"
+       FROM CART, MEMBER, PROD
+       WHERE CART.CART_MEMBER=MEMBER.MEM_ID
+       AND   CART.CART_PROD=PROD.PROD_ID
+       AND   SUBSTR(CART.CART_NO,0,6)='202005'
+       GROUP BY MEMBER.MEM_ID, MEMBER.MEM_NAME;
+
+-- OUTER JOIN
+-- 분류테이블 조회
+SELECT * FROM LPROD;
+-- 일반 JOIN
+SELECT LPROD_GU AS "분류코드",
+       LPROD_NM AS "분류명",
+       COUNT(PROD_LGU) AS "상품자료수"
+       FROM LPROD,PROD
+       WHERE LPROD_GU=PROD_LGU
+       GROUP BY LPROD_GU,LPROD_NM;
+-- OUTER JOIN 사용 확인
+SELECT LPROD_GU AS "분류코드",
+       LPROD_NM AS "분류명",
+       COUNT(PROD_LGU) AS "상품자료수"
+       FROM LPROD,PROD
+       WHERE LPROD_GU=PROD_LGU
+       GROUP BY LPROD_GU,LPROD_NM;
+-- ANSI OUTER JOIN 사용 확인
+SELECT LPROD_GU AS "분류코드",
+       LPROD_NM AS "분류명",
+       COUNT(PROD_LGU) AS "상품자료수"
+       FROM LPROD
+       LEFT OUTER JOIN PROD ON (LPROD_GU=PROD_LGU)
+       GROUP BY LPROD_GU,LPROD_NM
+       ORDER BY LPROD_GU;
+-- 전체 상품의 2020년도 5월 5일의 입고,출고현황 조회
+-- 상품코드, 상품명, 입고수량의 합, 판매수량의 합
+-- 입고 확인
+SELECT PROD.PROD_ID AS "상품코드",
+       PROD.PROD_NAME AS "상품",
+       SUM(BUYPROD.BUY_QTY) AS "입고수량"
+       FROM PROD,BUYPROD
+       WHERE PROD.PROD_ID=BUYPROD.BUY_PROD
+       AND   BUYPROD.BUY_DATE='20200505'
+       GROUP BY PROD.PROD_ID,PROD.PROD_NAME;
+-- 판매 확인
+SELECT PROD.PROD_ID AS "상품코드",
+       PROD.PROD_NAME AS "상품",
+       SUM(CART.CART_QTY) AS "판매수량"
+       FROM PROD
+       INNER JOIN CART
+       ON (PROD.PROD_ID=CART.CART_PROD)
+       WHERE CART.CART_NO LIKE '20200505%'
+       GROUP BY PROD.PROD_ID,PROD.PROD_NAME;
+
+SELECT PROD.PROD_ID AS "상품코드",
+       PROD.PROD_NAME AS "상품",
+       SUM(NVL(BUYPROD.BUY_QTY,0)) AS "입고수량",
+       SUM(NVL(CART.CART_QTY,0)) AS "판매수량"
+       FROM PROD,BUYPROD,CART
+       WHERE PROD.PROD_ID=BUYPROD.BUY_PROD
+       AND PROD.PROD_ID=CART.CART_PROD
+       AND BUYPROD.BUY_DATE='20200505'
+       AND SUBSTR(CART.CART_NO,1,8)='20200505'
+       GROUP BY PROD.PROD_ID,PROD.PROD_NAME;
+
+SELECT * FROM PROD;
+SELECT * FROM BUYPROD;
+SELECT * FROM CART;
+SELECT * FROM BUYER;
+
+-- SELF JOIN
+SELECT B.MEM_ID AS "회원ID", B.MEM_NAME AS "성명", B.MEM_MILEAGE AS "마일리지"
+       FROM MEMBER A, MEMBER B
+       WHERE A.MEM_ID='h001'
+       AND A.MEM_MILEAGE<=B.MEM_MILEAGE;
+-- 거래처코드가'P30203(참존)'과 동일지역에 속한 거래처만 검색 조회
+-- Alias는 거래처코드,거래처,주소
+SELECT B.BUYER_ID AS "거래처코드", B.BUYER_NAME AS "거래처명", B.BUYER_ADD1||' '||B.BUYER_ADD2 AS "주소"
+       FROM BUYER A, BUYER B
+       WHERE A.BUYER_ID='P30203'
+       AND SUBSTR(A.BUYER_ADD1,1,2)=SUBSTR(B.BUYER_ADD1,1,2);
+
+SELECT * FROM BUYER;
 -- 테스트 
 SELECT COUNT(*) FROM EMP;
 SELECT * FROM EMP;
